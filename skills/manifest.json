@@ -1,0 +1,178 @@
+[
+  {
+    "name": "analytics",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/analytics",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "copywriting",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/copywriting",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "cro",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/cro",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "customer-research",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/customer-research",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "experiment-design",
+    "repository": "https://github.com/growthenginenowoslawski/coldoutboundskills",
+    "revision": "25c5d85",
+    "path": "skills/experiment-design",
+    "license": "MIT",
+    "pack": "cold"
+  },
+  {
+    "name": "financial-analyst",
+    "repository": "https://github.com/alirezarezvani/claude-skills",
+    "revision": "8f08254",
+    "path": "finance/skills/financial-analyst",
+    "license": "MIT",
+    "pack": "ar"
+  },
+  {
+    "name": "frontend-design",
+    "repository": "https://github.com/anthropics/skills",
+    "revision": "2c5958e",
+    "path": "skills/frontend-design",
+    "license": "Apache-2.0 (per skill)",
+    "pack": "anth"
+  },
+  {
+    "name": "kwp-legal-compliance-check",
+    "repository": "https://github.com/anthropics/knowledge-work-plugins",
+    "revision": "e050c2e",
+    "path": "legal/skills/compliance-check",
+    "license": "Apache-2.0",
+    "pack": "kwp"
+  },
+  {
+    "name": "kwp-sales-account-research",
+    "repository": "https://github.com/anthropics/knowledge-work-plugins",
+    "revision": "e050c2e",
+    "path": "sales/skills/account-research",
+    "license": "Apache-2.0",
+    "pack": "kwp"
+  },
+  {
+    "name": "kwp-sales-pipeline-review",
+    "repository": "https://github.com/anthropics/knowledge-work-plugins",
+    "revision": "e050c2e",
+    "path": "sales/skills/pipeline-review",
+    "license": "Apache-2.0",
+    "pack": "kwp"
+  },
+  {
+    "name": "kwp-smb-business-pulse",
+    "repository": "https://github.com/anthropics/knowledge-work-plugins",
+    "revision": "e050c2e",
+    "path": "small-business/skills/business-pulse",
+    "license": "Apache-2.0",
+    "pack": "kwp"
+  },
+  {
+    "name": "kwp-smb-contract-review",
+    "repository": "https://github.com/anthropics/knowledge-work-plugins",
+    "revision": "e050c2e",
+    "path": "small-business/skills/contract-review",
+    "license": "Apache-2.0",
+    "pack": "kwp"
+  },
+  {
+    "name": "marketing-plan",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/marketing-plan",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "pm-business-model",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-product-strategy/skills/business-model",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pm-competitor-analysis",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-market-research/skills/competitor-analysis",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pm-north-star-metric",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-marketing-growth/skills/north-star-metric",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pm-outcome-roadmap",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-execution/skills/outcome-roadmap",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pm-product-strategy",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-product-strategy/skills/product-strategy",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pm-strategy-red-team",
+    "repository": "https://github.com/phuryn/pm-skills",
+    "revision": "2a12295",
+    "path": "pm-execution/skills/strategy-red-team",
+    "license": "MIT",
+    "pack": "pm"
+  },
+  {
+    "name": "pricing-strategist",
+    "repository": "https://github.com/alirezarezvani/claude-skills",
+    "revision": "8f08254",
+    "path": "commercial/skills/pricing-strategist",
+    "license": "MIT",
+    "pack": "ar"
+  },
+  {
+    "name": "revops",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/revops",
+    "license": "MIT",
+    "pack": "mk"
+  },
+  {
+    "name": "sales-enablement",
+    "repository": "https://github.com/coreyhaines31/marketingskills",
+    "revision": "96798cf",
+    "path": "skills/sales-enablement",
+    "license": "MIT",
+    "pack": "mk"
+  }
+]

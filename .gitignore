@@ -1,0 +1,14 @@
+node_modules/
+.local/
+validation/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+*.sqlite*
+*.db*
+__pycache__/
+*.pyc
+coverage/
+*.tgz
