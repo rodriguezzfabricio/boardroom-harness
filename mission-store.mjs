@@ -7,7 +7,7 @@ import {atomic,localDirectory} from './storage.mjs';
 import {hash,VERSION} from './core.mjs';
 import {RECIPE_VERSION,tasksFor,affectedTasks} from './recipes.mjs';
 import {compilePlan,normalizeBrief} from './capabilities.mjs';
-import {migrateMemory,copyLegacyMemory,adoptDecision,proposeLesson,reviewLesson,retrieveMemory,digestMemory,userEvent} from './mission-memory.mjs';
+import {migrateMemory,copyLegacyMemory,adoptDecision,recordSuppliedFact,proposeLesson,reviewLesson,retrieveMemory,digestMemory,userEvent} from './mission-memory.mjs';
 import {outputSnapshot} from './workspace.mjs';
 
 export const isAlive=pid=>{try{process.kill(pid,0);return true;}catch(e){return e.code!=='ESRCH';}};
@@ -294,6 +294,9 @@ export class MissionStore {
   return this.locked(async()=>{const m=await this.read(sourceMission);if(m.status!=='accepted')throw new Error('Lessons must reference a user-accepted mission');return proposeLesson(this.db,input,m);});
  }
  async validateMemory(id,decision,options){return this.updateMemory(()=>reviewLesson(this.db,id,decision,options));}
+ async recordFact(input){
+  return this.updateMemory(async()=>{if(input.sourceMission!=null)await this.read(input.sourceMission);return recordSuppliedFact(this.db,input);});
+ }
  async recordDecision(input){
   return this.updateMemory(async()=>{if(input.sourceMission!=null)await this.read(input.sourceMission);return adoptDecision(this.db,input);});
  }

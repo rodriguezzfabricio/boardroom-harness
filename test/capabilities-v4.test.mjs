@@ -20,7 +20,7 @@ test('catalog spans ten domains and returns detached, bounded skill and tool dec
   const inventory = capabilityInventory();
   assert.deepEqual([...new Set(inventory.map(item => item.domain))].sort(),
     ['analytics', 'finance', 'legal', 'marketing', 'operations', 'product', 'research', 'sales', 'strategy', 'website']);
-  assert.ok(inventory.length >= 12 && inventory.length <= 20);
+  assert.ok(inventory.length >= 12 && inventory.length <= 30);
   assert.equal(new Set(inventory.map(item => item.id)).size, inventory.length);
   assert.equal(inventory.filter(item => item.writesWorkspace).length, 1);
   for (const item of inventory) {
@@ -40,7 +40,7 @@ test('routing preserves website, finance, and sales and composes one reviewed mi
   const {tasks, brief} = compilePlan(composePlan({objective: mixed, domains: route.domains, mode: route.mode}), {mode: route.mode});
   assert.deepEqual(tasksFor('adaptive', route.mode, mixed), tasks);
   assert.deepEqual(tasks.filter(task => task.writesWorkspace).map(task => task.id), ['website-implementation']);
-  assert.deepEqual(tasks.at(-1).dependencies, ['website-implementation', 'finance', 'sales']);
+  assert.deepEqual(tasks.at(-1).dependencies, ['website-visual', 'finance', 'sales']);
   assert.deepEqual(tasks.at(-1).outcomes, brief.outcomes);
   assert.ok(tasks.at(-1).tools.includes('browser_check'));
   assert.ok(tasks.some(task => task.capabilityId === 'financial-analysis'));
@@ -100,6 +100,7 @@ test('workspace writers require delivery mode and independent browser verificati
   const plan = composePlan({objective, mode: 'deliver'});
   assert.throws(() => compilePlan(plan), /Workspace writes require deliver mode/);
   plan.tasks.at(-1).capabilityId = 'independent-review';
+  plan.tasks.find(t=>t.id==='website-visual').capabilityId='independent-review';
   assert.throws(() => compilePlan(plan, {mode: 'deliver'}), /browser-capable review/);
   plan.tasks[1].capabilityId = 'website-implement';
   assert.throws(() => compilePlan(plan, {mode: 'deliver'}), /at most one workspace writer/);

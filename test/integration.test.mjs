@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import { Context } from '@deepseek-ai/cordis';
+import {LocalAttachmentStore} from '@deepseek-ai/dsh-attachment-local';
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt';
 import Tools, {defineTool} from '@deepseek-ai/dsh-tools';
 import SkillRegistry from '@deepseek-ai/dsh-skill';
@@ -14,9 +15,9 @@ import {apply,rankSkills} from '../plugin.mjs';
 const project=process.cwd();
 const dummy=name=>defineTool({name,description:name,parameters:{},output:{schema:{type:'string'},render:(_a,x)=>[{type:'text',text:x}]},execute:async()=>''});
 async function setup(cwd=project, childRun){
- const ctx=new Context();const fibers=[ctx.plugin(SystemPrompt,{}),ctx.plugin(Tools,{}),ctx.plugin(SkillRegistry,{})];for(const fiber of fibers)await fiber.await();
+ const ctx=new Context();const fibers=[ctx.plugin(SystemPrompt,{}),ctx.plugin(Tools,{}),ctx.plugin(SkillRegistry,{}),ctx.plugin(LocalAttachmentStore,{dshHome:join(cwd,'.test-attachments')})];for(const fiber of fibers)await fiber.await();
  let agent,scope;
- ctx.provide('llm',{resolveCallConfig:async x=>x});ctx.provide('subagents',{start:childRun});
+ ctx.provide('llm',{resolveCallConfig:async x=>x,listProviders:()=>[{id:'test-vision'}],listModels:async()=>[{id:'vision-mini',inputModalities:['text','image']}],resolveModelInfo:async(provider)=>({inputModalities:provider==='test-vision'?['text','image']:['text']})});ctx.provide('subagents',{start:childRun});
  const owner=ctx.plugin({inject:['tools','skills','llm','subagents'],apply(ownerCtx){
   agent={id:'parent',session:{header:{cwd,id:'parent'},seq:0,surface:{nodes:[]},requestHeader:()=>undefined}};
   scope=createScope(ownerCtx,agent);agent.ctx=scope.ctx;agent.options={provider:'deepseek-official',model:'deepseek-v4-pro'};
@@ -52,7 +53,7 @@ async function fixture(){
  await mkdir(join(process.cwd(),'work'),{recursive:true});
  const cwd=await mkdtemp(join(process.cwd(),'work/boardroom-fixture-'));
  const base=join(cwd,'.agents/skills/boardroom');await mkdir(base,{recursive:true});
- for(const name of ['financial-analyst','kwp-legal-compliance-check','pm-strategy-red-team','pm-business-model','pm-north-star-metric','frontend-design','cro','copywriting'])await symlink(fileURLToPath(new URL('../skills/'+name,import.meta.url)),join(cwd,'.agents/skills',name));
+ for(const name of ['boardroom-visual-review','boardroom-corporate-legal','boardroom-tax-preparation','boardroom-local-crm','kwp-smb-contract-review','financial-analyst','kwp-legal-compliance-check','pm-strategy-red-team','pm-business-model','pm-north-star-metric','frontend-design','cro','copywriting'])await symlink(fileURLToPath(new URL('../skills/'+name,import.meta.url)),join(cwd,'.agents/skills',name));
  for(const [file,text] of Object.entries({'COMPANY.md':'Company test, unverified','STATE.md':'stage: 0','DECISIONS.md':'No decision yet'}))await writeFile(join(base,file),text);
  return {cwd,base};
 }
@@ -244,7 +245,7 @@ test('mission workers receive actual scoped tools and loaded skills; website del
  const {cwd}=await fixture();let host;const seen=[];
  host=await setup(cwd,async(_provider,req)=>{
   const taskId=req.label.split(':')[2];seen.push(taskId);
-  const child={id:'mission-'+taskId,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[]}};
+  const child={id:'mission-'+taskId,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[],requestHeader:()=>undefined}};
   const cs=createScope(host.agent.ctx,child,{parent:host.agent});child.ctx=cs.ctx;child.ctx.tools.restrict(req.toolFilter);
   child.ctx.tools.register({name:'structured_output',description:'Final',parameters:req.outputSchema,output:{schema:{type:'boolean'},render:()=>[]},execute:async()=>true});
   await host.ctx.serial(scopeTarget(child,child),'agent/created',{agent:child,source:'subagent'});
@@ -263,6 +264,7 @@ test('mission workers receive actual scoped tools and loaded skills; website del
    const listing=await call('workspace_list',{}),expectedHash=listing.files.includes('index.html')?(await call('workspace_read',{path:'index.html'})).contentHash:undefined;
    const written=await call('workspace_write',{path:'index.html',content:'<!doctype html><html><head><title>Mission test</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><h1>Book a visit</h1><a href="#contact">Contact</a><p id="contact">Test artifact</p></body></html>',...expectedHash?{expectedHash}:{}});artifacts.push({path:written.absolutePath,description:'Actual generated HTML'});
   }
+  if(taskId==='visual'){const check=await call('browser_check',{});for(const view of check.views){const opened=await host.ctx.tools.execute({name:'screenshot_open',arguments:{path:view.screenshot},agent:child,callId:'open-'+view.viewport.width,signal:req.signal});assert.ok(!opened.isError,JSON.stringify(opened));assert.ok(opened.content.some(block=>block.type==='image'),'Actual image must enter the child context');}}
   if(taskId==='verification'){const result=await call('browser_check',{});assert.equal(result.passed,true);}
   if(!artifacts.length){const report=await call('artifact_write',{name:'report.md',content:'Fixture task '+taskId+' inspected the supplied brief and recorded the outcome for independent review.'});artifacts.push({path:report.path,description:'Reviewable fixture report'});}
   const value={summary:'Completed the assigned task with actual tools.',claims:[],artifacts,verdict:'complete',issues:[]};
@@ -272,12 +274,12 @@ test('mission workers receive actual scoped tools and loaded skills; website del
  try{
   const out=await host.ctx.tools.get('boardroom_start',host.agent).execute({objective:'Redesign our website to improve bookings',background:false},{agent:host.agent,signal:new AbortController().signal});
   assert.equal(out.status,'review-ready');assert.deepEqual(seen.slice(0,2).sort(),['content','ux']);assert.ok(seen.indexOf('implementation')>seen.indexOf('design'));assert.equal(host.ctx.tools.get('workspace_write',host.agent),undefined);
-  const saved=JSON.parse(await readFile(out.record));assert.ok(saved.tasks.find(t=>t.id==='verification').result.verification.browserChecks[0].passed);
+  const saved=JSON.parse(await readFile(out.record));assert.ok(saved.tasks.find(t=>t.id==='verification').result.verification.browserChecks[0].passed);assert.equal(saved.tasks.find(t=>t.id==='visual').result.verification.visualReview.views.length,2);
   seen.length=0;
   await host.ctx.tools.get('boardroom_continue',host.agent).execute({missionId:out.missionId,background:false},{agent:host.agent,signal:new AbortController().signal});assert.deepEqual(seen,[]);
   await writeFile(saved.tasks.find(t=>t.id==='ux').result.artifacts[0].path,'Changed after the review.');
   const resumed=await host.ctx.tools.get('boardroom_continue',host.agent).execute({missionId:out.missionId,background:false},{agent:host.agent,signal:new AbortController().signal});
-  assert.equal(resumed.status,'review-ready');assert.deepEqual(seen,['ux','design','implementation','verification']);
+  assert.equal(resumed.status,'review-ready');assert.deepEqual(seen,['ux','design','implementation','visual','verification']);
  }finally{await host.scope.dispose();await host.stop();}
 });
 
@@ -330,7 +332,7 @@ test('adaptive tools bind actual skills, limit reviewer tools, reuse starts, and
  host=await setup(cwd,async(_provider,req)=>{
   const id=req.label.split(':')[2];seen.push(id);
   for(const name of req.toolFilter.allow)assert.ok(host.ctx.tools.get(name),'Only global names belong in inherited tool filters: '+name);
-  const child={id:'adaptive-'+id,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[]}};
+  const child={id:'adaptive-'+id,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[],requestHeader:()=>undefined}};
   const cs=createScope(host.agent.ctx,child,{parent:host.agent});child.ctx=cs.ctx;child.ctx.tools.restrict(req.toolFilter);
   child.ctx.tools.register({name:'structured_output',description:'Final',parameters:req.outputSchema,output:{schema:{type:'boolean'},render:()=>[]},execute:async()=>true});
   await host.ctx.serial(scopeTarget(child,child),'agent/created',{agent:child,source:'subagent'});
@@ -366,7 +368,7 @@ test('split browser and independent reviews can complete a valid delivery plan',
  const {cwd}=await fixture();let host;let browserChecks=0;
  const plan={brief:{outcomes:['Working local signup'],constraints:[],acceptance:['Signup reveals confirmation on desktop and mobile']},tasks:[{id:'build',capabilityId:'website-implement',dependencies:[],focus:'Build the local signup journey.',outcomes:['Working local signup']},{id:'browser',capabilityId:'website-review',dependencies:['build'],focus:'Exercise the signup journey.',outcomes:['Working local signup']},{id:'final',capabilityId:'independent-review',dependencies:['browser'],focus:'Review the tested artifact and limitations.',outcomes:['Working local signup']}]};
  host=await setup(cwd,async(_provider,req)=>{
-  const id=req.label.split(':')[2],child={id:'split-'+id,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[]}};
+  const id=req.label.split(':')[2],child={id:'split-'+id,options:req.agentOptions,session:{header:{cwd,parentSession:'parent'},surface:{nodes:[]},snapshotEvents:()=>[],requestHeader:()=>undefined}};
   const cs=createScope(host.agent.ctx,child,{parent:host.agent});child.ctx=cs.ctx;child.ctx.tools.restrict(req.toolFilter);
   child.ctx.tools.register({name:'structured_output',description:'Final',parameters:req.outputSchema,output:{schema:{type:'boolean'},render:()=>[]},execute:async()=>true});
   await host.ctx.serial(scopeTarget(child,child),'agent/created',{agent:child,source:'subagent'});
@@ -377,4 +379,27 @@ test('split browser and independent reviews can complete a valid delivery plan',
   return {localAgent:child,result:Promise.resolve({stopReason:'completed',structured:{summary:'Completed assigned build or review with evidence.',claims:[],artifacts:[artifact],verdict:'complete',issues:[]}}),dispose:()=>cs.dispose()};
  });
  try{const out=await host.ctx.tools.get('boardroom_start',host.agent).execute({objective:'Build a working local signup',plan,mode:'deliver',background:false},{agent:host.agent,signal:new AbortController().signal});assert.equal(out.status,'review-ready');assert.equal(browserChecks,1);}finally{await host.scope.dispose();await host.stop();}
+});
+
+test('lead tools record questionnaire facts and capture literal decisions without quote guessing',async()=>{
+ const {cwd}=await fixture();const host=await setup(cwd);
+ const events=[{seq:1,type:'user/message',data:{source:{kind:'user'},content:[{type:'text',text:'/boardroom Set the pilot price to $100.'}]}}];
+ host.agent.session.snapshotEvents=()=>events;host.agent.session.isOwnSeq=()=>true;
+ const call=(name,args)=>host.ctx.tools.get(name,host.agent).execute(args,{agent:host.agent,signal:new AbortController().signal});
+ try{
+  const tool=host.ctx.tools.get('boardroom_record_decision',host.agent);
+  assert.deepEqual(tool.parameters.properties.kind.enum,['decision','constraint']);
+  assert.ok(!tool.parameters.required.includes('note'));
+  const decision=await call('boardroom_record_decision',{key:'pilot-price',text:'Set the pilot price to $100.'});
+  assert.equal(decision.sourceEvent.text,'/boardroom Set the pilot price to $100.');
+  const callId='owners-call',answer='Jamie Rivera and Morgan Lee  just us two';
+  events.push({seq:2,type:'tool/call',data:{name:'ask_user_question',callId,arguments:JSON.stringify({questions:[{id:'owners',question:'Who are the owners?'}]})}});
+  events.push({seq:3,type:'tool/result',data:{message:{role:'tool',source:{kind:'tool',callId},toolCallId:callId,content:[{type:'text',text:JSON.stringify({answers:[{id:'owners',selected:[],custom:answer}]})}]}}});
+  await assert.rejects(call('boardroom_record_decision',{key:'owners',text:answer,kind:'ownership-structure'}),/kind.*must be one of/);
+  await assert.rejects(call('boardroom_record_decision',{key:'owners',text:answer,note:'User clarified the owners'}),/boardroom_record_fact/);
+  const fact=await call('boardroom_record_fact',{key:'owners',entity:'ownership',callId,questionId:'owners'});
+  assert.equal(fact.kind,'fact');assert.equal(fact.text,answer);
+  const memory=await call('boardroom_memory',{query:'ownership'});
+  assert.equal(memory.validatedMemory[0].sourceEvent.question.question,'Who are the owners?');
+ }finally{await host.scope.dispose();await host.stop();}
 });

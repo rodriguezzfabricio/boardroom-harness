@@ -2,7 +2,7 @@
 
 Use `/boardroom` to bring a business request to one controller. It can answer a small question directly or assign a larger job to specialists. A request to price an offer and plan outreach can use finance and sales in the same mission. The controller tracks decisions and work in progress, so you can change direction or return to the mission in a later chat.
 
-Boardroom runs inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). The release includes the controller, mission runtime, 22 specialist skills, and templates for your project's business records.
+Boardroom runs inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). The release includes the controller, mission runtime, 26 specialist skills, and templates for your project's business records.
 
 ## Run it
 
@@ -45,7 +45,7 @@ flowchart LR
     U <--> D
 ```
 
-- Plans bind work to 16 capabilities across website, finance, strategy, sales, marketing, product, operations, legal, analytics, and research. The scheduler starts independent tasks in parallel.
+- Plans bind work to 21 capabilities across website, finance, strategy, sales, marketing, product, operations, legal, analytics, and research. The scheduler starts independent tasks in parallel.
 - Workers get their assigned skill instructions, a limited tool list, and relevant evidence. The reviewer can read the full reports before making a recommendation.
 - Corrections update the mission revision and invalidate affected work. The controller can resume compatible results from SQLite after a restart.
 - Website delivery uses a separate mission workspace. Browser checks can click, fill, and assert the result of a declared journey at desktop and mobile sizes.
@@ -58,3 +58,12 @@ See [architecture and runtime limits](docs/architecture.md) for task scheduling,
 Live missions use your configured model provider and its billing. Web research needs Harness web tools and any credentials they require. Website checks cover the local page and the interactions you specify. External connectors, deployment, voice, and a production backend are outside this release.
 
 Boardroom code is [MIT licensed](LICENSE). Bundled specialist skills retain their upstream licenses and attribution. [Skill sources and notices](THIRD_PARTY_NOTICES.md).
+
+
+## Minimal business setup
+
+Version 4.1 adds corporate legal and tax workers, natural-language capability discovery, a project-local CRM, Google file/email tools, prepared bookkeeping/payment connectors, and actual screenshot review.
+
+Run `npm run connect -- --status` to see what is installed versus what still needs account setup. Read [Connections](docs/connections.md) for Google, Stripe, QuickBooks and Xero. No accounts, paid subscriptions, hosting or cloud backup are created by installation. Connected accounts from another application are not automatically shared with Harness.
+
+Website delivery includes visual review through a configured image-capable model. Reviewers receive actual desktop/mobile images; a text-only model cannot silently mark that review complete. The [visual review instructions](skills/boardroom-visual-review/SKILL.md) state the criteria and limits.

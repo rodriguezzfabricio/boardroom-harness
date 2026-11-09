@@ -6,6 +6,7 @@ import {evidenceStore} from './evidence.mjs';
 import {readdir,readFile,realpath,lstat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {readWorkspace} from './workspace.mjs';
+import {searchRecords,discoveryResult} from './discovery.mjs';
 
 async function resourceDigest(resourceBase){
  if(resourceBase?.kind!=='directory')return null;
@@ -69,9 +70,9 @@ export function installConnections(ctx,agent,{rankSkills,boardroom=false,telemet
   record(selected);return readWorkspace(await realpath(selected.resourceBase.path),args.path,args.start??0,args.length??16000);
  }}));
  agent.ctx.tools.register(defineTool({name:'agent_connections',description:'Inspect skills loaded into this agent and search the actual tools available to it. Tool visibility does not prove account authentication. Use before claiming a plugin is missing or used.',parameters:{query:{type:'string'}},output,async execute(args,exec){
-  const q=(args.query??'').toLowerCase();
-  const schemas=ctx.tools.schemas(agent),matches=schemas.filter(t=>!q||(t.name+' '+t.description).toLowerCase().includes(q));
-  return {loadedSkills:telemetry.skillsLoaded,missingSkills:telemetry.missingSkills,availableToolCount:schemas.length,matchingTools:matches.slice(0,20).map(t=>({name:t.name,description:t.description.slice(0,240)})),more:Math.max(0,matches.length-20),successfulCalls:telemetry.toolCalls.filter(t=>!t.isError).map(t=>t.name),note:'Only recorded successful calls establish execution. Installed workflow names do not prove external services are connected.'};
+  const schemas=ctx.tools.schemas(agent).map(t=>({name:t.name,description:t.description.slice(0,240)})),matches=searchRecords(schemas,args.query);
+  const installed=(await ctx.skills.list(lookup(exec))).filter(isModelInvocable);
+  return {...discoveryResult(schemas,matches,args.query,20),loadedSkills:telemetry.skillsLoaded,installedSkillCount:installed.length,missingSkills:telemetry.missingSkills,availableToolCount:schemas.length,matchingTools:matches.slice(0,20).map(t=>({name:t.name,description:t.description.slice(0,240)})),successfulCalls:telemetry.toolCalls.filter(t=>!t.isError).map(t=>t.name),note:'Loaded skills records this agent usage, not installation. Only successful calls establish execution. Inspect list_experts for the current Agency roster; generic defaults do not describe its state.'};
  }}));
  if(boardroom){
   if(allowedTools===undefined||allowedTools.includes('boardroom_economics'))agent.ctx.tools.register(defineTool({name:'boardroom_economics',description:'Calculate unit economics from explicit assumed integer-cent inputs.',parameters:Object.fromEntries(['priceCents','variableCostCents','monthlyFixedCostCents','customers'].map(k=>[k,{type:'integer',required:true}])),output,execute:async args=>economics(args)}));

@@ -9,15 +9,14 @@ import {installConnections,resolveSkills,recommendedSkills} from './connections.
 import {EvidenceStore} from './evidence.mjs';
 import {RUNTIME_FINGERPRINT} from './fingerprint.mjs';
 import {installMissionRuntime} from './missions.mjs';
+import {searchRecords} from './discovery.mjs';
 export { atomic } from './storage.mjs';
 export const name='boardroom-runtime';
 export const inject=['agents','tools','skills','subagents','llm'];
 const jsonOutput={schema:{type:'json'},render:(_args,value)=>[{type:'text',text:JSON.stringify(value)}]};
 export function rankSkills(skills,query) {
-  const q=query.toLowerCase().trim(), terms=[...new Set(q.split(/[^a-z0-9]+/).filter(Boolean))];
-  return skills.map(s=>({s,score:s.name.toLowerCase()===q?1000:terms.reduce((n,t)=>n+(s.name.toLowerCase().includes(t)?10:0)+(s.description.toLowerCase().includes(t)?1:0),0)}))
-    .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.s.name.localeCompare(b.s.name)).slice(0,5)
-    .map(({s})=>({name:s.name,description:s.description.replace(/\s+/g,' ').slice(0,160)}));
+  return searchRecords(skills,query).slice(0,5)
+    .map(s=>({name:s.name,description:s.description.replace(/\s+/g,' ').slice(0,160)}));
 }
 // Runs before the native tool captures its terminal result. A denied tool call
 // returns the exact error to the same child; it does not start another agent.

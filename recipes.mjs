@@ -14,20 +14,21 @@ export const CAPABILITIES=Object.freeze(Object.fromEntries(
 const fixedRecipes=new Set(['website','finance','strategy']);
 const domainPatterns={
  website:/\b(?:website|web site|landing page|homepage|home page|web design|ux)\b|booking.*\b(?:site|page)\b|\b(?:site|page)\b.*book/,
- finance:/\b(?:financ\w*|pricing|prices?|cash|runway|margins?|profit\w*|economics|burn rate|budgets?|valuation|break[- ]even)\b|\brevenue\b(?! operations)/,
+ finance:/\b(?:financ\w*|pricing|prices?|cash|runway|margins?|profit\w*|economics|burn rate|budgets?|valuation|break[- ]even|tax(?:es|ation)?|bookkeeping|accounting|ledger|1099|1065|w-9)\b|\brevenue\b(?! operations)/,
  strategy:/\b(?:business strategy|business model|strategic direction|competitive strategy|go.to.market strategy|options for the business)\b/,
  sales:/\b(?:sales|pipeline|prospect\w*|outreach|cold email|lead generation|lead qualification|sales enablement|deal desk|crm)\b/,
  marketing:/\b(?:marketing|campaigns?|advertis\w*|paid ads|seo|brand\w*|content strategy|content calendar|social media|positioning|go.to.market)\b/,
  product:/\b(?:product roadmap|product strategy|product discovery|product requirements|prd|feature priorit\w*|feature roadmap|backlog|onboarding flow)\b/,
  operations:/\b(?:operations?|revops|workflows?|sops?|standard operating procedure|handoffs?|process improvement|vendor management|fulfillment|staffing|customer support)\b/,
- legal:/\b(?:legal|contracts?|compliance|privacy policy|terms of service|nda|regulat\w*|liabilit\w*)\b/,
+ legal:/\b(?:legal|contracts?|compliance|privacy policy|terms of service|nda|regulat\w*|liabilit\w*|llc|operating agreement|incorporat\w*|entity formation|ownership agreement)\b/,
  analytics:/\b(?:analytics|measurement|instrumentation|metrics|kpis?|a\/?b test\w*|experiments?|tracking|dashboard)\b/,
  research:/\b(?:research|market sizing|competitor\w*|competitive intelligence|competitive analysis|customer interviews?|customer discovery|market trends)\b/,
 };
 const arithmetic=/\b(?:runway|margin|times|multiply|divide|add|subtract|profit|break[- ]even|calculate|economics)\b|\d\s*[+*/×÷]\s*\d/;
 
 function matchedDomains(text){
- const domains=Object.keys(domainPatterns).filter(domain=>domainPatterns[domain].test(text));
+ const salesText=text.replace(/\bsales[ -]tax\b/g,'tax');
+ const domains=Object.keys(domainPatterns).filter(domain=>domainPatterns[domain].test(domain==='sales'?salesText:text));
  if(/\bforecast\w*\b/.test(text)&&!domains.includes('sales')&&!domains.includes('finance'))domains.push('finance');
  if(!domains.length&&/\bredesign\b/.test(text))domains.push('website');
  if(!domains.length&&/\d/.test(text)&&arithmetic.test(text))domains.push('finance');
@@ -57,7 +58,8 @@ export function classifyIntent(message,{domain,activeMission}={}){
  if(!selected||(!domain&&/^(can you |help (me )?(with )?|let'?s (talk|discuss)( about )?|about |our |my |the |\s)*(finance|finances)[?.!\s]*$/.test(text)))return {action:'clarify',question:selected==='finance'?'Is this about company finances or personal finances?':'What outcome should we work toward?',candidates:Object.keys(CAPABILITIES)};
  const direct=selected==='finance'&&!/\b(?:compare|forecast|strategy|recommend|should|research|evaluate|assess|advise|suggest|decide|plan|model|also|report|prepare|write|create|draft|chart)\b/.test(text)&&/\d/.test(text)&&arithmetic.test(text);
  const mode=domains.includes('website')&&requestsWebsiteDelivery(text)?'deliver':'advice';
- const action=direct?'calculate':fixedRecipes.has(selected)?'start':'plan';
+ const taxOrBooks=/\b(?:tax(?:es|ation)?|bookkeeping|accounting|ledger|1099|1065|w-9)\b/.test(text);
+ const action=direct?'calculate':fixedRecipes.has(selected)&&!taxOrBooks?'start':'plan';
  return {action,domain:selected,domains,mode,reason:domain?'Controller supplied domain context':'Matched task intent; foreground controller resolves ambiguity',recipeVersion:RECIPE_VERSION,requiresClarification:false};
 }
 
@@ -88,13 +90,17 @@ export function composePlan({objective,domains,mode='advice'}){
     {id:'website-design',capabilityId:'website-design',dependencies:['website-inspect'],focus:'Combine the findings into a concrete website design with acceptance checks.',outcomes:[outcome]},
    );
    if(mode==='deliver')tasks.push({id:'website-implementation',capabilityId:'website-implement',dependencies:['website-design'],focus:'Build the requested local artifact in the mission workspace. Preserve required behavior and use existing facts.',outcomes:[outcome]});
+   if(mode==='deliver')tasks.push({id:'website-visual',capabilityId:'website-visual-review',dependencies:['website-implementation'],focus:'Capture and open actual desktop/mobile screenshots. Apply boardroom-visual-review and report concrete visual defects or pass with evidence.',outcomes:[outcome]});
    leaves.push(tasks.at(-1).id);
    continue;
   }
   const work=domainWork[domain];
   const pricing=domain==='finance'&&/\b(?:pricing|prices?|packaging|rates)\b/i.test(objective);
   const salesDraft=domain==='sales'&&/\b(?:draft|write|collateral|script|enablement|outreach|cold email)\b/i.test(objective);
-  const capabilityId=pricing?'pricing-analysis':salesDraft?'sales-enablement':work.capabilityId;
+  const tax=domain==='finance'&&/\b(?:tax(?:es|ation)?|bookkeeping|accounting|ledger|1099|1065|w-9)\b/i.test(objective);
+  const corporate=domain==='legal'&&/\b(?:llc|operating agreement|incorporat\w*|entity formation|ownership agreement)\b/i.test(objective);
+  const crm=domain==='sales'&&/\b(?:local crm|crm contacts|crm deals|crm notes)\b/i.test(objective);
+  const capabilityId=tax?'tax-preparation':corporate?'corporate-legal':crm?'local-crm':pricing?'pricing-analysis':salesDraft?'sales-enablement':work.capabilityId;
   const focus=pricing?'Compare the requested pricing or packaging options. Show assumptions and check material current facts.':salesDraft?'Prepare the requested sales draft or collateral for review. Ground claims in supplied evidence.':work.focus;
   tasks.push({id:domain,capabilityId,dependencies:[],focus,outcomes:[work.outcome]});
   outcomes.push(work.outcome);
@@ -118,7 +124,8 @@ export function tasksFor(domain,mode='advice',objective=''){
    task('design','synthesize',['frontend-design'],['ux','content'],'Combine the independent findings into one implementable design brief. Preserve accepted constraints and identify missing decisions.','complex'),
   ];
   if(mode==='deliver')tasks.push(task('implementation','implement',['frontend-design'],['design'],'Build the requested website artifact in the isolated workspace using workspace tools. Prefer a complete self-contained HTML/CSS/JS prototype when no application is supplied. Do not create placeholder claims or silently remove existing functionality.','complex'));
-  tasks.push(task('verification','review',['frontend-design'],[mode==='deliver'?'implementation':'design'],'Verify the deliverable against the objective and upstream findings. For implementation, run browser_check; inspect functional results and report visual review limitations. Request bounded corrections when needed.','complex'));
+  if(mode==='deliver')tasks.push({...task('visual','review',['boardroom-visual-review'],['implementation'],'Run browser_check, open actual desktop and mobile images with screenshot_open, and evaluate them against the visual review rubric.'),tools:['workspace_list','workspace_read','browser_check','screenshot_open']});
+  tasks.push(task('verification','review',['frontend-design'],[mode==='deliver'?'visual':'design'],'Verify the deliverable against the objective and upstream findings. For implementation, run browser_check; inspect functional results and report visual review limitations. Request bounded corrections when needed.','complex'));
   return tasks;
  }
  if(domain==='finance')return [

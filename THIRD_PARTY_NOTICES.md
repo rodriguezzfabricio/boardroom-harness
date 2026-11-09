@@ -26,3 +26,8 @@ The following specialist instructions and supporting files are distributed under
 | `pricing-strategist` | [Source at `8f08254`](https://github.com/alirezarezvani/claude-skills/tree/8f08254/commercial/skills/pricing-strategist) | [MIT](licenses/ar-LICENSE.txt) |
 | `revops` | [Source at `96798cf`](https://github.com/coreyhaines31/marketingskills/tree/96798cf/skills/revops) | [MIT](licenses/mk-LICENSE.txt) |
 | `sales-enablement` | [Source at `96798cf`](https://github.com/coreyhaines31/marketingskills/tree/96798cf/skills/sales-enablement) | [MIT](licenses/mk-LICENSE.txt) |
+
+
+## Additional Boardroom skills
+
+`boardroom-corporate-legal`, `boardroom-tax-preparation`, `boardroom-local-crm`, and `boardroom-visual-review` are Boardroom-specific instructions distributed under this repository's MIT license. References inside these skills identify the source libraries and evaluation guidance consulted; they do not imply professional certification or provider endorsement. Connector dependencies retain their own package licenses.

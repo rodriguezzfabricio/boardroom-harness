@@ -1,6 +1,6 @@
 {
   "name": "boardroom-harness",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "A persistent, capability-routed team workflow for DeepSeek Harness.",
   "type": "module",
   "private": true,
@@ -16,34 +16,51 @@
     "start": "node scripts/start.mjs",
     "doctor": "node doctor.mjs",
     "test": "node scripts/test.mjs",
-    "browser:install": "playwright install chromium"
+    "browser:install": "playwright install chromium",
+    "connect": "node scripts/connect.mjs",
+    "postinstall": "node scripts/prepare-connectors.mjs",
+    "check:projects": "node scripts/check-projects.mjs"
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-mcp-client": "0.2.0-rc.2",
+    "@googleworkspace/cli": "0.22.5",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@qboapi/qbo-mcp-server": "git+https://github.com/intuit/quickbooks-online-mcp-server.git#31a1dd5c3e170e368dbff651abbaf61aabde6ed9",
+    "mcp-remote": "0.16.5",
     "playwright": "1.58.2",
     "yaml": "2.9.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
     "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-skill": "0.2.0-rc.2",
     "@deepseek-ai/dsh-subagent": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-skill": "0.2.0-rc.2"
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
     "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-subagent": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.0-rc.2",
     "@deepseek-ai/dsh-skill": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
     "@deepseek-ai/dsh-skill-filesystem": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-subagent": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
     "@deepseek-ai/dsh-tool-skill": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-scope": "0.2.0-rc.2"
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
   },
   "overrides": {
     "@deepseek-ai/cordis": "$@deepseek-ai/cordis",
     "@modelcontextprotocol/client": "2.3.0",
-    "fflate": "0.8.3"
+    "fflate": "0.8.3",
+    "decode-uri-component": "0.5.1",
+    "node-quickbooks": {
+      "fast-xml-parser": "5.10.1",
+      "underscore": "1.13.8",
+      "uuid": "11.1.1"
+    },
+    "@qboapi/qbo-mcp-server": {
+      "zod": "4.6.7"
+    }
   }
 }

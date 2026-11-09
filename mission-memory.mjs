@@ -22,7 +22,7 @@ export function userEvent(event,type,missionId=null){
  if(eventId!==null&&!(typeof eventId==='string'&&eventId.trim()&&eventId.length<=200)&&!Number.isSafeInteger(eventId))throw new Error('Invalid source user event ID');
  if(event.revision!=null&&(!Number.isSafeInteger(event.revision)||event.revision<1))throw new Error('Invalid source user event revision');
  if(event.resultDigest!=null&&(typeof event.resultDigest!=='string'||!/^[a-f0-9]{64}$/.test(event.resultDigest)))throw new Error('Invalid source user event result digest');
- return {type,text:event.text.trim(),missionId,eventId,sessionId:event.sessionId??null,action:event.action??null,targetId:event.targetId??null,revision:event.revision??null,resultDigest:event.resultDigest??null,at:new Date().toISOString()};
+ return {type,text:event.text.trim(),missionId,eventId,sessionId:event.sessionId??null,action:event.action??null,targetId:event.targetId??null,revision:event.revision??null,resultDigest:event.resultDigest??null,...type==='user-supplied-fact'?{callId:event.callId,questionId:event.questionId,question:event.question,answer:event.answer}:{},at:new Date().toISOString()};
 }
 
 export function migrateMemory(db){
@@ -78,6 +78,18 @@ export function adoptDecision(db,{entity='project',key,text,kind='decision',sour
  return insert(db,{...input,id,text,sourceEvent:event,status:'validated',supersedes:previous?.id??null});
 }
 
+export function recordSuppliedFact(db,{entity='project',key,text,sourceEvent,sourceMission,supersedes}){
+ const input={kind:'fact',entity:scope(entity,'entity'),key:scope(key,'key')};
+ text=boundedText(text,'Provide a bounded user-supplied fact');
+ if(sourceEvent?.action!=='supply-fact'||!sourceEvent.callId||!sourceEvent.questionId||!sourceEvent.question||!sourceEvent.answer)throw new Error('A recorded questionnaire answer is required');
+ const event=userEvent(sourceEvent,'user-supplied-fact',sourceMission);
+ const previous=current(db,input);
+ if(supersedes!==undefined&&supersedes!==(previous?.id??null))throw new Error('The specified memory is not the current fact in this scope');
+ const id=randomUUID();
+ replaceCurrent(db,previous,id);
+ return insert(db,{...input,id,text,sourceEvent:event,status:'validated',supersedes:previous?.id??null});
+}
+
 export function proposeLesson(db,{text,entity='project',key},mission){
  const id=randomUUID();
  text=boundedText(text,'Provide a bounded proposed lesson');
@@ -106,7 +118,7 @@ export function retrieveMemory(db,query,{entity,key,history=false,limit=10}={}){
  if(typeof query!=='string'||!Number.isSafeInteger(limit)||limit<1||limit>50)throw new Error('Invalid memory query or limit');
  const terms=termsFor(query),entityFilter=entity===undefined?null:scope(entity,'entity'),keyFilter=key===undefined?null:scope(key,'key');
  const rows=db.prepare(`SELECT * FROM memory WHERE (? IS NULL OR entity IN ('project',?)) AND (? IS NULL OR key=?)
-  AND (? OR (status='validated' AND supersededBy IS NULL AND kind IN ('decision','constraint','lesson')))`)
+  AND (? OR (status='validated' AND supersededBy IS NULL AND kind IN ('decision','constraint','lesson','fact')))`)
   .all(entityFilter,entityFilter,keyFilter,keyFilter,history===true?1:0);
  const constraints=[],matches=[];
  for(const row of rows){

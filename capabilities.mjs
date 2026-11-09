@@ -18,6 +18,7 @@ export const CAPABILITY_CATALOG = Object.freeze([
   capability('website-design', 'website', 'Synthesize a website brief or design with concrete acceptance checks.', ['frontend-design'], 'synthesize', {difficulty: 'complex', tools: workspaceRead}),
   capability('website-implement', 'website', 'Implement a local website artifact and run scoped local checks.', ['frontend-design'], 'implement', {difficulty: 'complex', tools: [...workspaceRead, 'workspace_write', 'browser_check', 'bash'], writesWorkspace: true}),
   capability('website-review', 'website', 'Independently review website work and verify delivered local artifacts in a browser.', ['frontend-design', 'pm-strategy-red-team'], 'review', {difficulty: 'complex', tools: [...workspaceRead, ...calculations, 'browser_check', 'bash']}),
+  capability('website-visual-review', 'website', 'Inspect actual desktop and mobile screenshots for visual design, hierarchy, readability and responsive layout.', ['boardroom-visual-review'], 'review', {tools: [...workspaceRead,'browser_check','screenshot_open']}),
   capability('financial-analysis', 'finance', 'Analyze supplied cash flow, unit economics, margins, and financial scenarios.', ['financial-analyst'], 'analyze', {difficulty: 'complex', tools: calculations}),
   capability('pricing-analysis', 'finance', 'Compare pricing or packaging options using current primary evidence when needed.', ['pricing-strategist', 'financial-analyst'], 'analyze', {difficulty: 'complex', research: true, tools: [...calculations, ...webResearch]}),
   capability('business-strategy', 'strategy', 'Frame business decisions, compare models, and identify risks and decision criteria.', ['pm-business-model'], 'analyze', {difficulty: 'complex', tools: calculations}),
@@ -27,6 +28,10 @@ export const CAPABILITY_CATALOG = Object.freeze([
   capability('product-plan', 'product', 'Develop product strategy, requirements, priorities, and an outcome roadmap.', ['pm-product-strategy', 'pm-outcome-roadmap'], 'synthesize', {difficulty: 'complex'}),
   capability('operations-plan', 'operations', 'Assess business operations, workflow handoffs, and process improvements.', ['kwp-smb-business-pulse', 'revops'], 'analyze'),
   capability('legal-assessment', 'legal', 'Review supplied terms or a compliance question and research applicable primary sources.', ['kwp-legal-compliance-check', 'kwp-smb-contract-review'], 'analyze', {difficulty: 'complex', research: true, tools: webResearch}),
+  capability('corporate-legal', 'legal', 'Draft LLC operating agreements, ownership questions, entity formation and corporate compliance checklists.', ['boardroom-corporate-legal'], 'analyze', {difficulty: 'complex', research: true, tools: webResearch}),
+  capability('tax-preparation', 'finance', 'Prepare tax registration research, tax calendars, reconciled bookkeeping and accountant handoff materials.', ['boardroom-tax-preparation'], 'analyze', {difficulty: 'complex', research: true, tools: [...calculations,...webResearch]}),
+  capability('local-crm', 'sales', 'Organize local CRM contacts, deals, notes and next actions without an external account.', ['boardroom-local-crm'], 'analyze', {tools: ['boardroom_crm_list']}),
+  capability('specialist-analysis', 'strategy', 'Use other installed specialist skills selected by exact name for bounded research and decision support.', ['pm-strategy-red-team'], 'analyze', {research: true, tools: [...calculations,...webResearch]}),
   capability('analytics-plan', 'analytics', 'Analyze supplied metrics or design measurement and experiments.', ['analytics', 'experiment-design'], 'analyze', {tools: calculations}),
   capability('market-research', 'research', 'Research customer, competitor, or market questions with traceable sources.', ['customer-research', 'pm-competitor-analysis'], 'research', {research: true, tools: webResearch}),
   capability('independent-review', 'strategy', 'Independently challenge peer evidence, arithmetic, coverage, and acceptance checks.', ['pm-strategy-red-team'], 'review', {difficulty: 'complex', tools: calculations}),
@@ -81,15 +86,20 @@ export function compilePlan(plan, {mode = 'advice'} = {}) {
   const brief = normalizeBrief(plan.brief);
 
   const tasks = boundedList(plan.tasks, 2, taskLimit, raw => {
-    requireFields(raw, ['id', 'capabilityId', 'dependencies', 'focus', 'outcomes'], 'Plan task');
+    const custom=raw?.capabilityId==='specialist-analysis' && Object.hasOwn(raw,'skills');
+    requireFields(raw, ['id', 'capabilityId', 'dependencies', 'focus', 'outcomes',...(custom?['skills']:[])], 'Plan task');
     const id = taskId(raw.id);
     const item = byCapability.get(raw.capabilityId);
     if (!item) throw new Error(`Unknown capability for task ${id}`);
     const outcomes = boundedList(raw.outcomes, 1, taskLimit,
       entry => boundedText(entry, 800, `${id} outcome`), `${id} outcomes`);
     if (outcomes.some(outcome => !brief.outcomes.includes(outcome))) throw new Error(`Task ${id} references an unknown brief outcome`);
+    const skills=custom?boundedList(raw.skills,1,2,name=>{
+      if(typeof name!=='string'||!/^[a-z0-9][a-z0-9-]{0,119}$/.test(name))throw new Error('Use an exact installed skill name');
+      return name;
+    },'Specialist skills'):[...item.skills];
     return {
-      id, capabilityId: item.id, kind: item.kind, skills: [...item.skills],
+      id, capabilityId: item.id, kind: item.kind, skills,
       dependencies: boundedList(raw.dependencies, 0, taskLimit - 1, taskId, `${id} dependencies`),
       focus: boundedText(raw.focus, 3000, `${id} focus`), difficulty: item.difficulty,
       research: item.research, status: 'pending', attempts: 0,

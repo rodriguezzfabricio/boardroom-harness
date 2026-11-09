@@ -51,6 +51,16 @@ export async function writeWorkspace(root,path,content,expectedHash){
  return {path,absolutePath:file,contentHash:hash(content),characters:content.length};
 }
 
+export async function workspaceDigest(root,excludePath){
+ const listing=await listFiles(root,'.',1001);if(listing.limited)throw new Error('Workspace exceeds 1,000-file verification budget');
+ const files=[];let bytes=0;
+ for(const path of listing.files.sort()){
+  const file=await scopedPath(root,path);if(excludePath&&(file===excludePath||file.startsWith(excludePath+'/')))continue;
+  const stat=await lstat(file);bytes+=stat.size;if(!stat.isFile()||stat.size>10000000||bytes>100000000)throw new Error('Workspace verification exceeds size budget');
+  files.push({path,digest:hash((await readFile(file)).toString('base64'))});
+ }
+ return hash(files);
+}
 export async function outputSnapshot(missionRoot,artifacts,{workspace=false}={}){
  const roots={workspace:join(missionRoot,'workspace'),artifacts:join(missionRoot,'artifacts')};
  let bytes=0;
@@ -155,6 +165,7 @@ export async function browserCheck(root,{entry='index.html',artifactDir,signal:o
  if(typeof artifactDir!=='string'||!artifactDir)throw new Error('Browser check requires an artifact directory');
  ownerSignal?.throwIfAborted();
  const entryFile=await scopedPath(root,entry);
+ const capturedWorkspaceHash=await workspaceDigest(root,artifactDir);
  const entryUrl=relative(root,entryFile).split('/').map(encodeURIComponent).join('/');
  const {chromium}=await import('playwright');
  const executablePath=await browserExecutable(chromium);
@@ -241,13 +252,14 @@ export async function browserCheck(root,{entry='index.html',artifactDir,signal:o
      if(!record.passed)break;
     }
     if(steps.length)journey.passed=journey.steps.length===steps.length&&journey.steps.every(step=>step.passed)&&navigationBlocks===0&&errorCount===renderErrors;
-    views.push({viewport,...inspection,screenshot,status:response?.status(),renderPassed,journey});
+    views.push({viewport,...inspection,screenshot,screenshotHash:hash((await readFile(screenshot)).toString('base64')),status:response?.status(),renderPassed,journey});
    }finally{await context.close();}
   }
   const renderPassed=views.every(view=>view.renderPassed);
   const journeyPassed=steps.length>0&&views.every(view=>view.journey.passed);
   const functionalVerified=renderPassed&&journeyPassed&&steps.some(step=>['click','fill','press'].includes(step.action))&&steps.some(step=>step.action.startsWith('assert-'));
-  return {entryPath:entryFile,entryHash:hash(await readFile(entryFile,'utf8')),status:views[0].status,passed:renderPassed&&(!steps.length||journeyPassed),renderPassed,functionalVerified,errors,blockedNavigations,views,scope:'Local rendering and declared interactions at two viewport sizes. Screenshots require visual review. Each assertion covers only the supplied step.'};
+  if(await workspaceDigest(root,artifactDir)!==capturedWorkspaceHash)throw new Error('Website files changed during browser capture; run the check again');
+  return {entryPath:entryFile,entryHash:hash(await readFile(entryFile,'utf8')),workspaceHash:capturedWorkspaceHash,captureArtifactDir:artifactDir,status:views[0].status,passed:renderPassed&&(!steps.length||journeyPassed),renderPassed,functionalVerified,errors,blockedNavigations,views,scope:'Local rendering and declared interactions at two viewport sizes. Screenshots require visual review. Each assertion covers only the supplied step.'};
  }catch(error){
   signal.throwIfAborted();
   throw error;

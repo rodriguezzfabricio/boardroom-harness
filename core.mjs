@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const VERSION = '4.0.1';
+export const VERSION = '4.1.0';
 export const LIMITS = Object.freeze({
   specialists: 5, concurrency: 2, calls: 8, promptChars: 20000,
   reviewChars: 60000, repairChars: 8000, resultChars: 6000,

@@ -51,12 +51,12 @@ test('R05/R06: corrections attach to the active mission and real ambiguity asks 
  const activeMission={id:'m',domain:'website'};assert.equal(classifyIntent('Keep the structure but make it premium.',{activeMission}).action,'steer');assert.equal(classifyIntent('Help me with finance').action,'clarify');assert.equal(classifyIntent('I am unsure what direction this business should take').domain,'strategy');
 });
 test('O01/O02: dependencies gate implementation while independent inspection can run in parallel',()=>{
- const tasks=tasksFor('website','deliver');assert.deepEqual(tasks.filter(t=>!t.dependencies.length).map(t=>t.id),['ux','content']);assert.deepEqual(tasks.find(t=>t.id==='implementation').dependencies,['design']);assert.deepEqual([...affectedTasks(tasks,['implementation'])],['implementation','verification']);
+ const tasks=tasksFor('website','deliver');assert.deepEqual(tasks.filter(t=>!t.dependencies.length).map(t=>t.id),['ux','content']);assert.deepEqual(tasks.find(t=>t.id==='implementation').dependencies,['design']);assert.deepEqual([...affectedTasks(tasks,['implementation'])],['implementation','visual','verification']);
 });
 test('O01: actual scheduler overlaps independent tasks and orders dependent work',async()=>{
  const {store}=await fixture();try{const m=await create(store,{domain:'website',mode:'deliver'});let active=0,peak=0,entered=0,release;const both=new Promise(r=>{release=r;});const done=[];
   const e=engine(store,async(_m,t)=>{peak=Math.max(peak,++active);for(const d of t.dependencies)assert.ok(done.includes(d));if(!t.dependencies.length){if(++entered===2)release();await both;}done.push(t.id);active--;return {value:value()};});
-  const result=await run(e,m.id);assert.equal(peak,2);assert.equal(result.status,'review-ready');assert.equal(result.budget.calls,5);
+  const result=await run(e,m.id);assert.equal(peak,2);assert.equal(result.status,'review-ready');assert.equal(result.budget.calls,6);
  }finally{await store.close();}
 });
 test('O03: partial work survives a failed peer and resume retries only necessary tasks',async()=>{

@@ -3,7 +3,7 @@ name: boardroom
 description: One persistent business controller. Composes website, finance, strategy, sales, marketing, product, operations, legal, analytics, and research requests to real skilled workers, keeps missions and decisions per project, and remains available while background work proceeds.
 user-invocable: true
 metadata:
-  version: 4.0.1
+  version: 4.1.0
   category: business
 ---
 # Boardroom controller
@@ -48,6 +48,18 @@ Use `boardroom_decide` only after the user explicitly accepts, requests revision
 
 `boardroom_record_decision` records an explicitly adopted business decision or constraint with an entity and stable key, its exact user text and complete source message. A new decision with the same entity/key supersedes the old one; history remains inspectable. Artifact acceptance does not adopt its recommendations. `boardroom_memory` retrieves current decisions and validated lessons, always including protected constraints. Memory changes invalidate affected running/completed work. A worker reads an immutable memory snapshot for its attempt. `boardroom_remember` proposes a reusable lesson from an accepted mission; it remains excluded from retrieval until the user reviews that exact lesson through `boardroom_review_memory` and explicitly validates it in a subsequent message with `boardroom_validate_memory`. Preserve the distinction between supplied facts, assumptions, proposed lessons and accepted decisions. No automatic rewriting of skills or business policy occurs.
 
+
+
+### Record the right kind of user input
+
+`boardroom_record_fact` saves a supplied fact from the latest completed native `ask_user_question` answer. Pass the recorded `callId`, the answer's `questionId`, a stable `key`, and optionally `entity`. The runtime reads the exact answer and its question from this conversation and preserves both. Do not serialize the answers JSON into a decision, invent an equity split, or treat a supplied fact as approval. Pending, skipped, stale, or inherited answers cannot be recorded. Facts are source-verified user statements, not independently verified truths or permission for external actions.
+
+For example, after the owners question returns `Jamie Rivera and Morgan Lee  just us two`, call `boardroom_record_fact` with that question call's actual `callId`, `questionId: "owners"`, `entity: "ownership"`, and `key: "co-owners"`. Equity split and managing-member designation remain unknown. A selected scope option is preserved with its complete question and any custom qualification; recording it as a fact does not accept an artifact or validate a lesson.
+
+`boardroom_record_decision` is for explicit adoption such as `Set the pilot price to $100.` Its `kind` can only be `decision` or `constraint`; categories such as ownership belong in `entity`/`key`. Put an exact user span in `text`. Normally omit `note`: the runtime captures the complete latest user message automatically, including `/boardroom`. If supplied, `note` must be that complete verbatim message, never an explanation. This automatic capture does not relax the explicit-adoption check. Use `boardroom_decide` for artifact acceptance and `boardroom_validate_memory` for lesson validation as before.
+
+On a provenance error, follow its named recovery route once. Do not retry altered quotes, strip prefixes, substitute an agent summary, or silently claim the record was saved. Already supplied facts can still be used as attributed mission inputs while a record remains unsaved.
+
 ## Existing business stages remain available
 
 If the user explicitly asks for a business stage, read the relevant shared `stages/NN-stage.md` and use `boardroom_run`. This compatibility lane still supports brief, plan, decide, market, outreach drafts and operate. Select 1–3 specialists normally, up to five for distinct questions, with exact installed skill names. Use `skill_search` when necessary. Children are advisory in this lane.
@@ -69,9 +81,9 @@ After an installation upgrade, reload the Harness profile and use a fresh chat s
 
 ## Adaptive planning and precise routing
 
-Use `boardroom_capabilities` to inspect actual skills and required tools. Installed instructions, callable tools, authenticated accounts, and successful execution are different facts. Do not promise external connector access from a role name. The catalog currently binds sixteen capabilities across ten business domains; it is extensible code, not unrestricted automatic plugin installation.
+Use `boardroom_capabilities` to inspect actual skills and required tools. Installed instructions, callable tools, authenticated accounts, and successful execution are different facts. Do not promise external connector access from a role name. The catalog currently binds twenty-one capabilities across ten business domains; it is extensible code, not unrestricted automatic plugin installation.
 
-For mixed work or a department without a fixed template, define one plan with `brief: {outcomes, constraints, acceptance}` and `tasks`. Every task contains exactly `id`, `capabilityId`, `dependencies`, `focus`, and `outcomes`; outcomes must match brief outcomes. Use the identifiers returned by capability discovery. A final independent review covers every work task and requested outcome. Website writes require delivery mode and a downstream browser reviewer. Start with two workers and one workspace writer.
+For mixed work or a department without a fixed template, define one plan with `brief: {outcomes, constraints, acceptance}` and `tasks`. Every task contains `id`, `capabilityId`, `dependencies`, `focus`, and `outcomes`; only `specialist-analysis` additionally accepts `skills` (one or two exact installed names); outcomes must match brief outcomes. Use the identifiers returned by capability discovery. A final independent review covers every work task and requested outcome. Website writes require delivery mode and a downstream browser reviewer. Start with two workers and one workspace writer.
 
 Validate the raw plan with `boardroom_plan`. Its response includes the reusable `plan` and a separate compiled view; pass the raw plan to `boardroom_start`. When a prerequisite is discovered or your understanding changes, use `boardroom_replan` with the current `planRevision`, the full replacement plan, and a short reason. Previous corrections remain active. Code rejects stale plans, cycles, unknown capabilities, missing outcomes, and conflicting writers. Use `boardroom_status` to obtain revisions and `boardroom_list` plus `boardroom_select` when several missions exist. Mutation tools require a selected or explicitly identified mission.
 
@@ -80,3 +92,23 @@ Reuse a stable requestId for transport retries: repeated starts return existing 
 For broad discussion, guide the user through framing, evidence, options, choice, execution, and review as needed. Simple questions stay with the controller. Explain the current useful step; do not impose every stage on a short question. A worker needing a decision returns needs-input with a concrete question to the controller.
 
 Model routing is task-specific: deterministic tools for routine operations, economical workers for routine analysis, stronger reasoning for difficult synthesis or review. Never claim that the active foreground model switched automatically. Compare observed quality, duration, and usage before claiming savings. The runtime bounds scheduler waiting and fences late results; already-started native/provider I/O may take additional time to stop.
+
+
+## Reliable discovery and real delegation
+
+For “list”, “what is installed”, or “which experts”, call `boardroom_capabilities` without a query. Read `totalAvailable`, `matchedCount`, `filtered` and `matches` separately. A filtered empty result is not an empty installation. `agent_connections.loadedSkills` means instructions loaded into this particular agent, not all installed skills. Use its installedSkillCount and availableToolCount. Agency defaults do not describe the enabled roster; call `list_experts` if using Agency.
+
+For substantive drafting, research, legal, tax, design or multi-department work, use the route's `suggestedPlan` with `boardroom_start`. Discovery is not delegation. Do not replace the team with a solo final answer after finding skills. Record the actual mission ID, workers and loaded skills in your completion evidence. If a needed skill has no preset, find it with `skill_search`, bind its exact name using `specialist-analysis`, add an independent reviewer, and validate/start that plan. Missing tools or a blocked model must be reported as that specific limitation, not as “no experts installed”.
+
+LLC operating agreements and entity formation use `corporate-legal`. Tax registration, sales tax and accountant preparation use `tax-preparation`; “sales tax” alone must not trigger a sales team. Supply known jurisdiction and facts without inventing ownership, equity or a tax election. These workers research/draft; they do not file returns, sign documents or supply a professional license.
+
+## Minimal business tools
+
+Call `boardroom_integrations` before claiming an account is connected. Installed packages, configured apps, OAuth consent, and a successful read of the intended company are separate states. No setup command is a financial transaction or message-send authorization.
+
+- Local CRM: `boardroom_crm_list`, `boardroom_crm_save`, `boardroom_crm_export`. Read before update and supply the current revision. Keep the user's facts/source; integer cents require currency. CRM belongs to the current project and needs no account. The specialist can read it and propose changes; the controller saves requested changes.
+- Google: `boardroom_google_read` supports Drive search/metadata, Docs reading, Sheets ranges and Gmail search/reading. `boardroom_email_draft` creates a draft only after a user requests a draft; it never sends. A connected Codex account is not automatically a connected Harness account.
+- Bookkeeping/payments: inspect `boardroom_service_tools`, then use its exact schema with `boardroom_service_call`. QuickBooks and Xero reads require their own accounts/apps. Stripe also supports creating customers/products/prices, draft invoices and payment links when the user explicitly requests that concrete operation. Verify account and test/live mode first; inspect existing records before retrying a write. Never send/finalize an invoice, charge/refund money, or silently duplicate a record. Unsupported operations remain in the provider dashboard. Do not call live writes just to test setup.
+- Website delivery includes a separate `website-visual-review` task. Capture and open real desktop/mobile images with `screenshot_open`; the runtime chooses an image-capable configured model. DOM checks alone cannot complete visual review. If no capable account/model is configured, say exactly that and keep the review blocked. An independent functional reviewer still exercises the delivered page.
+
+No hosting, cloud backup, scheduled outreach or voice integration is part of this minimal installation.
