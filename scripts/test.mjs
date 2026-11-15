@@ -1,0 +1,15 @@
+import {mkdtemp,realpath,mkdir,writeFile,readdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const root=dirname(dirname(fileURLToPath(import.meta.url)));
+const cwd=await realpath(await mkdtemp(join(tmpdir(),'boardroom-test-')));
+const tests=(await readdir(join(root,'test'))).filter(n=>n.endsWith('.test.mjs')).sort().map(n=>join(root,'test',n));
+const result=spawnSync(process.execPath,['--test',...tests],{cwd,encoding:'utf8',timeout:120000,maxBuffer:4000000});
+await mkdir(join(root,'validation'),{recursive:true});
+await writeFile(join(root,'validation/tests.txt'),(result.stdout??'')+(result.stderr??''));
+await writeFile(join(root,'validation/test-context.json'),JSON.stringify({cwd,exitCode:result.status,signal:result.signal,tests},null,2)+'\n');
+process.stdout.write(result.stdout??'');process.stderr.write(result.stderr??'');
+if(result.error)process.stderr.write(result.error.message+'\n');
+process.exitCode=result.status??1;

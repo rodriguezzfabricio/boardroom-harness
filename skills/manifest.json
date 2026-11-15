@@ -1,0 +1,90 @@
+[
+  {
+    "name": "analytics",
+    "path": "skills/analytics"
+  },
+  {
+    "name": "copywriting",
+    "path": "skills/copywriting"
+  },
+  {
+    "name": "cro",
+    "path": "skills/cro"
+  },
+  {
+    "name": "customer-research",
+    "path": "skills/customer-research"
+  },
+  {
+    "name": "experiment-design",
+    "path": "skills/experiment-design"
+  },
+  {
+    "name": "financial-analyst",
+    "path": "finance/skills/financial-analyst"
+  },
+  {
+    "name": "frontend-design",
+    "path": "skills/frontend-design"
+  },
+  {
+    "name": "kwp-legal-compliance-check",
+    "path": "legal/skills/compliance-check"
+  },
+  {
+    "name": "kwp-sales-account-research",
+    "path": "sales/skills/account-research"
+  },
+  {
+    "name": "kwp-sales-pipeline-review",
+    "path": "sales/skills/pipeline-review"
+  },
+  {
+    "name": "kwp-smb-business-pulse",
+    "path": "small-business/skills/business-pulse"
+  },
+  {
+    "name": "kwp-smb-contract-review",
+    "path": "small-business/skills/contract-review"
+  },
+  {
+    "name": "marketing-plan",
+    "path": "skills/marketing-plan"
+  },
+  {
+    "name": "pm-business-model",
+    "path": "pm-product-strategy/skills/business-model"
+  },
+  {
+    "name": "pm-competitor-analysis",
+    "path": "pm-market-research/skills/competitor-analysis"
+  },
+  {
+    "name": "pm-north-star-metric",
+    "path": "pm-marketing-growth/skills/north-star-metric"
+  },
+  {
+    "name": "pm-outcome-roadmap",
+    "path": "pm-execution/skills/outcome-roadmap"
+  },
+  {
+    "name": "pm-product-strategy",
+    "path": "pm-product-strategy/skills/product-strategy"
+  },
+  {
+    "name": "pm-strategy-red-team",
+    "path": "pm-execution/skills/strategy-red-team"
+  },
+  {
+    "name": "pricing-strategist",
+    "path": "commercial/skills/pricing-strategist"
+  },
+  {
+    "name": "revops",
+    "path": "skills/revops"
+  },
+  {
+    "name": "sales-enablement",
+    "path": "skills/sales-enablement"
+  }
+]
